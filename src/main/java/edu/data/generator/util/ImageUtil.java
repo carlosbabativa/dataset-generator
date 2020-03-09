@@ -10,24 +10,52 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
+import javax.swing.*;
+
 public class ImageUtil {
 
     private final static Double proportion = 0.75d;
     private final static Logger LOG = LoggerFactory.getLogger(ImageUtil.class);
 
     public static BufferedImage progressiveScaleImage(final BufferedImage originalImage, final Integer width, final Integer height) {
+        // LOG.info("Original  WxH: {}x{}", originalImage.getWidth(), originalImage.getHeight());
+        // LOG.info("Requested WxH: {}x{}", width, height);
         BufferedImage resizedImage = cloneImage(originalImage, true);
         int newWidth = (int) ((double) originalImage.getWidth() * proportion);
         int newHeight = (int) ((double) originalImage.getHeight() * proportion);
-
-        while (newWidth > width || newHeight > height) {
-            resizedImage = scaleImage(resizedImage, newWidth, newHeight);
-            newWidth = (int) ((double) newWidth * proportion);
-            newHeight = (int) ((double) newHeight * proportion);
+        int i = 1;
+        // LOG.info(i+"st shrink WxH: {}x{}. Type: {}", newWidth, newHeight, resizedImage.getType());
+        if (width != 0 && height != 0){
+            resizedImage = scaleImage(cloneImage(originalImage, true), width, height);
+            while (newWidth > width || newHeight > height) {
+                resizedImage = scaleImage(resizedImage, newWidth, newHeight);
+                newWidth = (int) ((double) newWidth * proportion);
+                newHeight = (int) ((double) newHeight * proportion);
+                i++;
+                // LOG.info(i+"th shrink WxH: {}x{}. Type: {}", newWidth, newHeight, resizedImage.getType());
+            }
         }
 
-        resizedImage = scaleImage(resizedImage, width, height);
+        // resizedImage = scaleImage(resizedImage, width, height);
+        
+        if (width != 0 && height != 0){
+            resizedImage = scaleImage(cloneImage(originalImage, true), width, height);
+        } else{
+            resizedImage = cloneImage(originalImage, true);
+        }
         return resizedImage;
+    }
+
+    public static void draw(BufferedImage img){
+        JFrame frame = new JFrame("");
+        frame.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
+        ImageIcon imageIcon = new ImageIcon(img);
+        JLabel jLabel = new JLabel();
+        jLabel.setIcon(imageIcon);
+        frame.getContentPane().add(jLabel, BorderLayout.CENTER);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
     }
 
     public static BufferedImage readImage(final File image) {

@@ -33,9 +33,12 @@ public class Generator {
 
     public void generate() {
         LOG.info("Image generation process has started.");
-        for (int i=0; i<Config.DATA_SET_SIZE; i++) {
-            BufferedImage image = backgroundGenerator.getRandomBackground();
-            GeneratedData data = cardGenerator.putCardsToBackground(image);
+        for (int i=1; i<=Config.DATA_SET_SIZE; i++) {
+            int bgIdx = backgroundGenerator.getRandomBackgroundIndex();
+            double grainScale = backgroundGenerator.getBackgroundGrainScaleFactorAtIdx(bgIdx);
+            BufferedImage image = backgroundGenerator.getBackgroundAtIdx(bgIdx);
+            LOG.info("Output image name: {}.jpg", i);
+            GeneratedData data = cardGenerator.putCardsToBackground(image, grainScale);
             ImageUtil.saveImage(data.getImage(), Config.TARGET_DIR + DATASET_DIR + IMAGES_DIR + i + ".jpg");
             annotationGenerator.saveAnnotation(Config.CLASS_LABELS, data.getBoxes(), i + "");
         }

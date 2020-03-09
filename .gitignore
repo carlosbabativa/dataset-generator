@@ -1,3 +1,6 @@
+#Data
+dataset/
+
 # built application files
 *.apk
 *.ap_
@@ -35,5 +38,3 @@ build/
 bin/
 log/
 out/
-dataset/cards/
-dataset/backgrounds/
