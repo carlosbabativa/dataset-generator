@@ -38,3 +38,6 @@ build/
 bin/
 log/
 out/
+
+#vscode
+.settings/

@@ -33,7 +33,12 @@ public class BackgroundGenerator {
 
     public void init() {
         readBackgrounds();
+        // fetchBaseXmls();
         initialized = true;
+    }
+
+    public List<String> getBgNames(){
+        return bg_names;
     }
 
     public int getRandomBackgroundIndex() {
@@ -71,8 +76,10 @@ public class BackgroundGenerator {
         for (final File file : Reader.listFilesFromDir(Config.BACKGROUND_DIR)){
             i++;
             double pc = Math.round((double)10000 * i/lineCnt)/100.0;
-            backgrounds.add(ImageUtil.progressiveScaleImage(ImageUtil.readImage(file), Config.IMAGE_WIDTH, Config.IMAGE_HEIGHT));
-            System.out.printf("Background %s loaded and rescaled - %4.2f%%\r", file.getName(), pc);
+            BufferedImage bfImage = ImageUtil.readImage(file);
+            double AR = ((double) bfImage.getHeight() / (double) bfImage.getWidth());
+            System.out.printf("Loading and rescaling background %s (AR: %3.2f) - %4.2f%%\n", file.getName(), AR, pc);
+            backgrounds.add(ImageUtil.progressiveScaleImage(bfImage, Config.IMAGE_WIDTH, Config.IMAGE_HEIGHT));
             bg_names.add(file.getName());
         }
         LOG.info("{} backgrounds to process.", backgrounds.size());

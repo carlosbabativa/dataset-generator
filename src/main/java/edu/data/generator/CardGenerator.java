@@ -248,7 +248,7 @@ public class CardGenerator {
 
     private List<Integer> getRandomCards() {
         final List<Integer> cardIndexes = new ArrayList();
-        final int cardCount = (int) ( Config.ROWS * Config.COLS * (0.5 + random.nextInt(10)/10.0)/2 ); //Generate at least half as many as Max
+        final int cardCount = (int) ( Config.ROWS * Config.COLS * (0.6 + random.nextInt(10)/10.0)/2 ); //Generate at least half as many as Max
         for (int i = 0; i< cardCount; i++) {
             cardIndexes.add(random.nextInt(images.size()));
         }
@@ -257,7 +257,7 @@ public class CardGenerator {
 
     private void readImages() {
         // cardSize = calcCardSize();
-        cardSize = 16;
+        // cardSize = 16;
         LOG.info("Loading, please wait. This process can take some time..., Card size: {}", cardSize);
         int i = 0;
         Path path = Paths.get(Config.SOURCE_DIR);

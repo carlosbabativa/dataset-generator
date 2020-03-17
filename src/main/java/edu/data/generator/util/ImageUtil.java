@@ -60,6 +60,7 @@ public class ImageUtil {
 
     public static BufferedImage readImage(final File image) {
         try {
+            // System.out.printf("Buffering %s\n",image.getPath());
             return ImageIO.read(image);
         } catch (IOException ex) {
             LOG.error("Unable to read image {}!", image.getName());

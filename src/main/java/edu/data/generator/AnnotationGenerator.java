@@ -12,9 +12,24 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.FileSystemAlreadyExistsException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.w3c.dom.*;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.*;
+import java.io.*;
+
+// import javax.xml.bind.JAXBContext;
+// import javax.xml.bind.JAXBException;
+// import javax.xml.bind.Unmarshaller;
+// import javax.xml.bind.annotation.XmlElement;
+// import javax.xml.bind.annotation.XmlRootElement;
+// import javax.xml.bind.annotation.XmlType;
 
 import static edu.data.generator.config.Config.ANNOTATIONS_DIR;
 import static edu.data.generator.config.Config.DARKNET_CONFIG_DIR;
@@ -27,12 +42,17 @@ public class AnnotationGenerator {
 
     private final static Logger LOG = LoggerFactory.getLogger(AnnotationGenerator.class);
     private final Jinjava jinjava;
-
+    // private List<String> baseObjects;
+    Map<Integer,String> baseObjects = new HashMap<Integer,String>();
+    Map<String,Integer> bgNameIdx = new HashMap<String,Integer>();
+    int curBgIdx;
     public AnnotationGenerator() {
         jinjava = new Jinjava();
+        this.curBgIdx = -1;
     }
 
-    public void saveAnnotation(final String[] classNames, final List<BoundingBox> boxes, final String fileName) {
+    public void saveAnnotation(final String[] classNames, final List<BoundingBox> boxes, final String fileName, int bgIdx) {
+        this.curBgIdx = bgIdx;
         saveInVocFormat(boxes, fileName);
         if (Config.DARKNET) {
             saveInDarknetFormat(classNames, boxes, fileName);
@@ -119,9 +139,65 @@ public class AnnotationGenerator {
             LOG.error("Unable to save annotation xml!");
         }
     }
+    /*
+    If the background images have xml files associated to them
+    Fetch the class and boxbounds as a formatted String (BoundingBox based)
+    and map them to background image index to use as a starter 
+    whilst populating new annotations onto generated images 
+    */
+    public void fetchBaseObjects(List<String> bgNames){
+        String basePath = Config.BACKGROUND_BASE_XMLS_DIR;
+        for (int i=0;i<bgNames.size();i++){
+            bgNameIdx.put(bgNames.get(i),i);
+        }
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            // JAXBContext jaxbContext = JAXBContext.newInstance(BoundingBox.class);
+            // Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
+
+            for (String bg : bgNames) {
+                String bgName = bg.split("_\\d\\.\\d.")[0];// Temporary. rgx matches e.g. "_0.040" TODO: Handle grainscale internally, don't require background namechange
+                String xmlPath = basePath + "/" + bgName + ".xml"; 
+                File xmlFile = new File(xmlPath);
+                List<BoundingBox> objects = new ArrayList<BoundingBox>();
+                if (xmlFile.exists()){
+                    Document document = builder.parse(xmlFile);  // new ByteArrayInputStream(body.getBytes()));
+                    document.getDocumentElement().normalize();
+                    // Element root = document.getDocumentElement();
+                    NodeList objectNodes = document.getElementsByTagName("object");
+                    BoundingBox object;
+                    for (int i=0; i < objectNodes.getLength(); i++){
+                        Node node = objectNodes.item(i);
+                        if (node.getNodeType() == Node.ELEMENT_NODE){
+                            Element nElement = (Element) node;
+                            object = new BoundingBox();
+                            object.setClassName(nElement.getElementsByTagName("name").item(0).getTextContent());
+                            object.setxMin(Integer.parseInt(nElement.getElementsByTagName("xmin").item(0).getTextContent()));
+                            object.setyMin(Integer.parseInt(nElement.getElementsByTagName("ymin").item(0).getTextContent()));
+                            object.setxMax(Integer.parseInt(nElement.getElementsByTagName("xmax").item(0).getTextContent()));
+                            object.setyMax(Integer.parseInt(nElement.getElementsByTagName("ymax").item(0).getTextContent()));
+                            objects.add(object);
+                        }
+                    }
+                    baseObjects.put(bgNameIdx.get(bg),generateObjects(objects));
+                }
+            }
+
+		} catch (ParserConfigurationException | SAXException | IOException e){ //| JAXBException e) {
+			e.printStackTrace();
+        }
+        
+        
+    }
+   
+    // private String generateObjects(final List<BoundingBox> boxes) {
+    //     return generateObjects(boxes,-1);
+    // }
 
     private String generateObjects(final List<BoundingBox> boxes) {
-        String objects = "";
+        Boolean hasBaseObjects = (this.curBgIdx != -1 | baseObjects.containsKey(this.curBgIdx));
+        String objects = ( hasBaseObjects ) ? baseObjects.get(this.curBgIdx) : "" ;
 
         try {
             String objectTemplate = Resources.toString(Resources.getResource("object-template.xml"), Charsets.UTF_8);
@@ -137,7 +213,7 @@ public class AnnotationGenerator {
         } catch (IOException ex) {
             LOG.error("Unable to read object-template.xml!");
         }
-
+        this.curBgIdx = -1;
         return objects;
     }
 
